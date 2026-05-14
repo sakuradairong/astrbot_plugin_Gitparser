@@ -2,4 +2,5 @@ name: Gitparser
 desc: 自动解析 GitHub 仓库和 Release 链接并展示摘要信息。
 version: 1.1.0
 author: chena
+repo: https://github.com/sakuradairong/astrbot_plugin_Gitparser
 
