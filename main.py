@@ -14,6 +14,7 @@ _REPO_PATTERN = re.compile(
 
 _RELEASE_TAG_PATTERN = re.compile(
     r'(?<![a-zA-Z0-9.-])github\.com/([a-zA-Z0-9._-]+)/([a-zA-Z0-9._-]+)/releases/tag/([^\s/]+)'
+    r'(?:\s|$|[^\w./-])'
 )
 
 _RELEASES_PAGE_PATTERN = re.compile(
@@ -102,15 +103,8 @@ class GitparserPlugin(Star):
         ]
         yield event.plain_result("\n".join(lines))
 
-    async def _handle_latest_release(self, event: AstrMessageEvent, owner: str, repo: str):
-        data = await self._fetch_api(f"/repos/{owner}/{repo}/releases/latest")
-        if data is None:
-            return
-        if isinstance(data, dict) and data.get("error") == "rate_limited":
-            yield event.plain_result("GitHub API 限流，请稍后再试")
-            return
-
-        tag_name = data.get("tag_name", "unknown")
+    def _build_release_message(self, owner: str, repo: str, data: dict, fallback_tag: str = "unknown") -> str:
+        tag_name = data.get("tag_name", fallback_tag)
         name = data.get("name") or tag_name
         published_at = data.get("published_at", "")[:10]
         zip_url = data.get("zipball_url", "")
@@ -121,7 +115,16 @@ class GitparserPlugin(Star):
             f"\U0001f4c5 发布于: {published_at}",
             f"\U0001f4e6 下载: {zip_url}",
         ]
-        yield event.plain_result("\n".join(lines))
+        return "\n".join(lines)
+
+    async def _handle_latest_release(self, event: AstrMessageEvent, owner: str, repo: str):
+        data = await self._fetch_api(f"/repos/{owner}/{repo}/releases/latest")
+        if data is None:
+            return
+        if isinstance(data, dict) and data.get("error") == "rate_limited":
+            yield event.plain_result("GitHub API 限流，请稍后再试")
+            return
+        yield event.plain_result(self._build_release_message(owner, repo, data))
 
     async def _handle_release_by_tag(self, event: AstrMessageEvent, owner: str, repo: str, tag: str):
         data = await self._fetch_api(f"/repos/{owner}/{repo}/releases/tags/{tag}")
@@ -130,16 +133,4 @@ class GitparserPlugin(Star):
         if isinstance(data, dict) and data.get("error") == "rate_limited":
             yield event.plain_result("GitHub API 限流，请稍后再试")
             return
-
-        tag_name = data.get("tag_name", tag)
-        name = data.get("name") or tag_name
-        published_at = data.get("published_at", "")[:10]
-        zip_url = data.get("zipball_url", "")
-
-        lines = [
-            f"\U0001f680 {owner}/{repo} - {tag_name}",
-            f"\U0001f4dd {name}",
-            f"\U0001f4c5 发布于: {published_at}",
-            f"\U0001f4e6 下载: {zip_url}",
-        ]
-        yield event.plain_result("\n".join(lines))
+        yield event.plain_result(self._build_release_message(owner, repo, data, tag))
