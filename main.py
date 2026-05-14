@@ -38,18 +38,21 @@ class GitparserPlugin(Star):
 
         m = _find_first_url(text, _RELEASE_TAG_PATTERN)
         if m:
-            yield await self._handle_release_by_tag(event, m.group(1), m.group(2), m.group(3))
+            async for result in self._handle_release_by_tag(event, m.group(1), m.group(2), m.group(3)):
+                yield result
             return
 
         m = _find_first_url(text, _RELEASES_PAGE_PATTERN)
         if m:
-            yield await self._handle_latest_release(event, m.group(1), m.group(2))
+            async for result in self._handle_latest_release(event, m.group(1), m.group(2)):
+                yield result
             return
 
         m = _find_first_url(text, _REPO_PATTERN)
         if m:
             owner, repo = m.group(1), m.group(2)
-            yield await self._handle_repo(event, owner, repo)
+            async for result in self._handle_repo(event, owner, repo):
+                yield result
 
     async def _fetch_api(self, path: str) -> dict | None:
         headers = {"Accept": "application/vnd.github+json"}
