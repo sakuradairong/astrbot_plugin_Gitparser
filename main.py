@@ -102,7 +102,7 @@ class GitparserPlugin(Star):
         lines = [
             f"\U0001f4e6 {full_name}",
             f"{description}",
-            f"\u2b50 Stars: {stars}  |  \U0001f354 Forks: {forks}  |  \U0001f524 语言: {language}",
+            f"\u2b50 Stars: {stars}  |  \U0001f374 Forks: {forks}  |  \U0001f524 语言: {language}",
             f"\U0001f4c5 最后更新: {updated_at}  |  \U0001f513 {license_name}",
         ]
         yield event.plain_result("\n".join(lines))
