@@ -90,19 +90,33 @@ class GitparserPlugin(Star):
 
         full_name = data.get("full_name", f"{owner}/{repo}")
         description = data.get("description") or "(无描述)"
+        html_url = data.get("html_url", "")
         stars = data.get("stargazers_count", 0)
         forks = data.get("forks_count", 0)
+        watchers = data.get("watchers_count", 0)
+        open_issues = data.get("open_issues_count", 0)
         language = data.get("language") or "未知"
+        created_at = data.get("created_at", "")[:10]
         updated_at = data.get("updated_at", "")[:10]
         license_info = data.get("license")
         license_name = license_info["spdx_id"] if license_info and isinstance(license_info, dict) else "无"
+        topics = data.get("topics", [])
+        avatar_url = data.get("owner", {}).get("avatar_url", "")
+
+        if avatar_url:
+            yield event.image_result(avatar_url)
 
         lines = [
             f"\U0001f4e6 {full_name}",
             f"{description}",
-            f"\u2b50 Stars: {stars}  |  \U0001f374 Forks: {forks}  |  \U0001f524 语言: {language}",
-            f"\U0001f4c5 最后更新: {updated_at}  |  \U0001f513 {license_name}",
+            f"\U0001f517 {html_url}",
+            f"\u2b50 {stars:,}  \U0001f374 {forks:,}  \U0001f441 {watchers:,}  \u2757 {open_issues:,}",
+            f"\U0001f524 {language}  \U0001f4c5 Updated {updated_at}  \U0001f4c6 Created {created_at}",
         ]
+        if topics:
+            lines.append(f"\U0001f3f7 {'  '.join(f'#{t}' for t in topics[:8])}")
+        lines.append(f"\U0001f513 {license_name}")
+
         yield event.plain_result("\n".join(lines))
 
     def _build_release_message(self, owner: str, repo: str, data: dict, fallback_tag: str = "unknown") -> str:
