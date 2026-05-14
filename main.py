@@ -7,25 +7,23 @@ from astrbot.api import logger, AstrBotConfig
 GITHUB_API_BASE = "https://api.github.com"
 
 _REPO_PATTERN = re.compile(
-    r'github\.com/([a-zA-Z0-9._-]+)/([a-zA-Z0-9._-]+)'
+    r'(?<![a-zA-Z0-9.-])github\.com/([a-zA-Z0-9._-]+)/([a-zA-Z0-9._-]+)'
     r'(?:\.git)?'
     r'(?:\s|$|[^\w./-])'
 )
 
 _RELEASE_TAG_PATTERN = re.compile(
-    r'github\.com/([a-zA-Z0-9._-]+)/([a-zA-Z0-9._-]+)/releases/tag/([^\s/]+)'
+    r'(?<![a-zA-Z0-9.-])github\.com/([a-zA-Z0-9._-]+)/([a-zA-Z0-9._-]+)/releases/tag/([^\s/]+)'
 )
 
 _RELEASES_PAGE_PATTERN = re.compile(
-    r'github\.com/([a-zA-Z0-9._-]+)/([a-zA-Z0-9._-]+)/releases'
+    r'(?<![a-zA-Z0-9.-])github\.com/([a-zA-Z0-9._-]+)/([a-zA-Z0-9._-]+)/releases'
     r'(?:\s|$|[^\w./-])'
 )
 
 
 def _find_first_url(text: str, pattern: re.Pattern) -> re.Match | None:
-    for m in pattern.finditer(text):
-        return m
-    return None
+    return pattern.search(text)
 
 
 @star
@@ -51,9 +49,6 @@ class GitparserPlugin(Star):
         m = _find_first_url(text, _REPO_PATTERN)
         if m:
             owner, repo = m.group(1), m.group(2)
-            remaining = text[m.end():].strip()
-            if remaining.startswith('releases/'):
-                return
             yield await self._handle_repo(event, owner, repo)
 
     async def _fetch_api(self, path: str) -> dict | None:
