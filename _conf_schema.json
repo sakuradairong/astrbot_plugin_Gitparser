@@ -1,0 +1,8 @@
+{
+  "github_token": {
+    "description": "GitHub Personal Access Token（可选，用于突破 API 速率限制）",
+    "type": "string",
+    "hint": "不填则为无认证模式（60次/小时），填写 Token 后提升到 5000次/小时",
+    "default": ""
+  }
+}
