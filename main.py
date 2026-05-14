@@ -101,10 +101,6 @@ class GitparserPlugin(Star):
         license_info = data.get("license")
         license_name = license_info["spdx_id"] if license_info and isinstance(license_info, dict) else "无"
         topics = data.get("topics", [])
-        avatar_url = data.get("owner", {}).get("avatar_url", "")
-
-        if avatar_url:
-            yield event.image_result(avatar_url)
 
         lines = [
             f"\U0001f4e6 {full_name}",
