@@ -1,7 +1,7 @@
 import re
 import aiohttp
 from astrbot.api.event import filter, AstrMessageEvent
-from astrbot.api.star import Context, Star, star
+from astrbot.api.star import Context, Star
 from astrbot.api import logger, AstrBotConfig
 
 GITHUB_API_BASE = "https://api.github.com"
@@ -27,7 +27,6 @@ def _find_first_url(text: str, pattern: re.Pattern) -> re.Match | None:
     return pattern.search(text)
 
 
-@star
 class GitparserPlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
