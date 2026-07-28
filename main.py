@@ -3,7 +3,7 @@ import re
 import aiohttp
 from astrbot.api import AstrBotConfig, logger
 from astrbot.api.event import AstrMessageEvent, filter
-from astrbot.api.star import Context, Star, star
+from astrbot.api.star import Context, Star
 
 GITHUB_API_BASE = "https://api.github.com"
 _REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=10)
@@ -44,7 +44,6 @@ def _contains_chinese(text: str) -> bool:
     return bool(re.search(r"[\u4e00-\u9fff]", text))
 
 
-@star
 class GitparserPlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)

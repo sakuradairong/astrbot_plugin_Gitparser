@@ -54,9 +54,6 @@ def _install_dependency_stubs():
         def __init__(self, context):
             self.context = context
 
-    def star(cls):
-        return cls
-
     class Logger:
         warning = unittest.mock.Mock()
         error = unittest.mock.Mock()
@@ -67,7 +64,6 @@ def _install_dependency_stubs():
     event_module.AstrMessageEvent = AstrMessageEvent
     star_module.Context = Context
     star_module.Star = Star
-    star_module.star = star
     sys.modules.update(
         {
             "astrbot": astrbot,

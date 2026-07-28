@@ -86,3 +86,8 @@ pip install -r requirements.txt
 ```
 
 插件遵循 [AstrBot 插件开发规范](https://docs.astrbot.app/dev/star/plugin-new.html)。
+
+## 更新记录
+
+- `1.2.1`：适配当前 AstrBot 插件自动注册机制，修复加载时无法导入 `star` 的问题。
+- `1.2.0`：新增中文仓库介绍。
