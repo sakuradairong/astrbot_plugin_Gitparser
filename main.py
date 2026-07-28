@@ -1,3 +1,4 @@
+import asyncio
 import re
 
 import aiohttp
@@ -8,6 +9,7 @@ from astrbot.api.star import Context, Star
 GITHUB_API_BASE = "https://api.github.com"
 _REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=10)
 _MAX_INTRO_LENGTH = 120
+_INTRO_TIMEOUT_SECONDS = 8
 
 _INTRO_SYSTEM_PROMPT = (
     "你是开源项目介绍助手。请仅根据用户提供的仓库元数据，用简体中文写一句"
@@ -53,17 +55,21 @@ class GitparserPlugin(Star):
         if token:
             self._headers["Authorization"] = f"Bearer {token}"
         self._session = aiohttp.ClientSession()
+        logger.info("Gitparser plugin initialized")
 
     async def terminate(self):
         if self._session and not self._session.closed:
             await self._session.close()
 
-    @filter.event_message_type(filter.EventMessageType.ALL)
+    @filter.event_message_type(filter.EventMessageType.ALL, priority=100)
     async def parse_github_link(self, event: AstrMessageEvent):
         text = event.message_str
 
         m = _find_first_url(text, _RELEASE_TAG_PATTERN)
         if m:
+            logger.info(
+                f"Gitparser matched release: {m.group(1)}/{m.group(2)}@{m.group(3)}"
+            )
             async for result in self._handle_release_by_tag(
                 event, m.group(1), m.group(2), m.group(3)
             ):
@@ -72,6 +78,7 @@ class GitparserPlugin(Star):
 
         m = _find_first_url(text, _RELEASES_PAGE_PATTERN)
         if m:
+            logger.info(f"Gitparser matched releases page: {m.group(1)}/{m.group(2)}")
             async for result in self._handle_latest_release(
                 event, m.group(1), m.group(2)
             ):
@@ -81,6 +88,7 @@ class GitparserPlugin(Star):
         m = _find_first_url(text, _REPO_PATTERN)
         if m:
             owner, repo = m.group(1), m.group(2)
+            logger.info(f"Gitparser matched repository: {owner}/{repo}")
             async for result in self._handle_repo(event, owner, repo):
                 yield result
 
@@ -91,6 +99,7 @@ class GitparserPlugin(Star):
                 url, headers=self._headers, timeout=_REQUEST_TIMEOUT
             ) as resp:
                 if resp.status == 404:
+                    logger.info(f"GitHub resource not found: {path}")
                     return None
                 if resp.status == 429:
                     logger.warning(f"GitHub API rate limited: {path}")
@@ -174,19 +183,31 @@ class GitparserPlugin(Star):
         )
 
         try:
-            provider_id = await self.context.get_current_chat_provider_id(
-                event.unified_msg_origin
-            )
-            response = await self.context.llm_generate(
-                chat_provider_id=provider_id,
-                prompt=prompt,
-                system_prompt=_INTRO_SYSTEM_PROMPT,
+            response = await asyncio.wait_for(
+                self._request_chinese_intro(event, prompt),
+                timeout=_INTRO_TIMEOUT_SECONDS,
             )
             intro = self._clean_intro(response.completion_text)
             return intro if _contains_chinese(intro) else fallback
+        except TimeoutError:
+            logger.warning(
+                f"Chinese repository intro timed out after {_INTRO_TIMEOUT_SECONDS}s; "
+                "using fallback"
+            )
+            return fallback
         except Exception as e:  # noqa: BLE001 - providers raise different errors
             logger.warning(f"Failed to generate Chinese repository intro: {e}")
             return fallback
+
+    async def _request_chinese_intro(self, event: AstrMessageEvent, prompt: str):
+        provider_id = await self.context.get_current_chat_provider_id(
+            event.unified_msg_origin
+        )
+        return await self.context.llm_generate(
+            chat_provider_id=provider_id,
+            prompt=prompt,
+            system_prompt=_INTRO_SYSTEM_PROMPT,
+        )
 
     @staticmethod
     def _build_fallback_intro(language: str, topics: list) -> str:

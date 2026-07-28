@@ -1,3 +1,4 @@
+import asyncio
 import importlib.util
 import sys
 import types
@@ -39,7 +40,7 @@ def _install_dependency_stubs():
 
     class Filter:
         @staticmethod
-        def event_message_type(_message_type):
+        def event_message_type(_message_type, **_kwargs):
             return lambda function: function
 
     Filter.EventMessageType = EventMessageType
@@ -55,6 +56,7 @@ def _install_dependency_stubs():
             self.context = context
 
     class Logger:
+        info = unittest.mock.Mock()
         warning = unittest.mock.Mock()
         error = unittest.mock.Mock()
 
@@ -186,6 +188,41 @@ class GitparserPluginTest(unittest.IsolatedAsyncioTestCase):
 
         self.assertIn("🇨🇳 这是一个主要使用Python开发", output)
         self.assertNotIn("An English-only introduction", output)
+
+    async def test_model_timeout_uses_fallback(self):
+        async def slow_request(_event, _prompt):
+            await asyncio.sleep(0.05)
+
+        self.plugin._request_chinese_intro = slow_request
+        original_timeout = plugin_module._INTRO_TIMEOUT_SECONDS
+        plugin_module._INTRO_TIMEOUT_SECONDS = 0.001
+        try:
+            output = await self._render_repo()
+        finally:
+            plugin_module._INTRO_TIMEOUT_SECONDS = original_timeout
+
+        self.assertIn("🇨🇳 这是一个主要使用Python开发", output)
+
+    async def test_real_omniroute_url_routes_to_repository_handler(self):
+        self.repo_data.update(
+            {
+                "full_name": "diegosouzapw/OmniRoute",
+                "description": "Free MIT AI gateway with hundreds of providers",
+                "language": "TypeScript",
+                "topics": ["ai-gateway", "llm-gateway", "mcp"],
+            }
+        )
+        self.plugin._fetch_api = AsyncMock(return_value=self.repo_data)
+
+        results = await collect(
+            self.plugin.parse_github_link(
+                FakeEvent("https://github.com/diegosouzapw/OmniRoute")
+            )
+        )
+
+        self.plugin._fetch_api.assert_awaited_once_with("/repos/diegosouzapw/OmniRoute")
+        self.assertEqual(len(results), 1)
+        self.assertIn("📦 diegosouzapw/OmniRoute", results[0])
 
     def test_cleans_prefix_whitespace_and_limits_length(self):
         cleaned = self.plugin._clean_intro("  中文介绍：  第一行\n第二行  ")
