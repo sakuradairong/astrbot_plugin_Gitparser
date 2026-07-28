@@ -4,16 +4,20 @@ AstrBot 插件，自动检测消息中的 GitHub 链接，解析仓库和 Releas
 
 ## 功能
 
-- **仓库解析** — 发送 GitHub 仓库链接，回复仓库名称、描述、Stars、Forks、语言、最近更新时间、License
+- **中文仓库介绍** — 使用当前会话配置的大模型，根据仓库描述、语言和 Topics 生成一句简短中文介绍
+- **仓库解析** — 发送 GitHub 仓库链接，回复仓库名称、中英文描述、Stars、Forks、语言、最近更新时间、License
 - **Release 解析** — 发送 Release 链接或版本链接，回复版本号、名称、发布时间、下载地址
 
 ## 效果示例
 
 ```
 📦 owner/repo
-A cool project description
-⭐ Stars: 1234  |  🍴 Forks: 56  |  🔤 语言: Python
-📅 最后更新: 2026-05-14  |  🔓 MIT
+🇨🇳 这是一个使用 Python 开发的轻量级 GitHub 链接解析工具。
+📝 A lightweight GitHub link parser
+🔗 https://github.com/owner/repo
+⭐ 1,234  🍴 56  👁 1,234  ❗ 3
+🔤 Python  📅 Updated 2026-05-14  📆 Created 2026-01-01
+🔓 MIT
 ```
 
 ```
@@ -65,6 +69,8 @@ git clone https://github.com/sakuradairong/astrbot_plugin_Gitparser
 - `https://github.com/owner/repo/releases/tag/v1.0.0`
 
 不支持的链接类型不会触发回复：Issue、PR、Commit、文件、Gist 等。
+
+仓库原始描述已经是中文时，插件会直接将其作为中文介绍，避免额外调用模型。英文描述或无描述仓库会使用当前会话选择的聊天模型生成中文介绍；如果没有可用模型或模型调用失败，则自动返回基于语言和 Topics 生成的中文概述，不影响仓库信息解析。
 
 ## 依赖
 
